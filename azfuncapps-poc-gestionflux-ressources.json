@@ -1,0 +1,211 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sites_azfuncapps_poc_gestionflux_name": {
+            "defaultValue": "prod-azfuncapps-poc-gestionflux",
+            "type": "String"
+        },
+        "sites_content_share_name": {
+            "defaultValue": "prod-azfuncapps-poc-gestionflux-ctshare",
+            "type": "String"
+        },
+        "App_Service_Plan_Name": {
+            "defaultValue": "ASP-TSDIS-azfuncapps-poc-gestionflux",
+            "type": "String"
+        },
+        "storageAccount_Id": {
+            "defaultValue": "[resourceId('Microsoft.Storage/storageAccounts', 'strpocgestionflux')]",
+            "type": "String"
+        },
+        "ressources_location": {
+            "defaultValue": "West Europe",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "name": "linkedTemplate",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://strpocgestionflux.blob.core.windows.net/armlinkedtemplates/azfuncapps-poc-gestionflux-linkedTemplate.json",
+                    "contentVersion": "1.0.0.0"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2018-02-01",
+            "name": "[parameters('App_Service_Plan_Name')]",
+            "location": "[parameters('ressources_location')]",
+            "sku": {
+                "name": "Y1",
+                "tier": "Dynamic",
+                "size": "Y1",
+                "family": "Y",
+                "capacity": 0
+            },
+            "kind": "functionapp",
+            "properties": {
+                "perSiteScaling": false,
+                "maximumElasticWorkerCount": 1,
+                "isSpot": false,
+                "reserved": false,
+                "isXenon": false,
+                "hyperV": false,
+                "targetWorkerCount": 0,
+                "targetWorkerSizeId": 0
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2018-11-01",
+            "name": "[parameters('sites_azfuncapps_poc_gestionflux_name')]",
+            "location": "[parameters('ressources_location')]",
+            "kind": "functionapp",
+            "properties": {
+                "enabled": true,
+                "hostNameSslStates": [
+                    {
+                        "name": "[concat(parameters('sites_azfuncapps_poc_gestionflux_name'), '.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "hostType": "Standard"
+                    },
+                    {
+                        "name": "[concat(parameters('sites_azfuncapps_poc_gestionflux_name'), '.scm.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "hostType": "Repository"
+                    }
+                ],
+                "serverFarmId": "[parameters('App_Service_Plan_Name')]",
+                "reserved": false,
+                "isXenon": false,
+                "hyperV": false,
+                "siteConfig": {},
+                "scmSiteAlsoStopped": false,
+                "clientAffinityEnabled": true,
+                "clientCertEnabled": false,
+                "hostNamesDisabled": false,
+                "containerSize": 1536,
+                "dailyMemoryTimeQuota": 0,
+                "httpsOnly": false,
+                "redundancyMode": "None"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/config",
+            "apiVersion": "2018-11-01",
+            "name": "[concat(parameters('sites_azfuncapps_poc_gestionflux_name'), '/appsettings')]",
+            "properties": {
+                "APPINSIGHTS_INSTRUMENTATIONKEY": "[reference('linkedTemplate').outputs.MyInstrumentationKey.value]",
+                 "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', 'strpocgestionflux', ';AccountKey=', listKeys(parameters('storageAccount_Id'),'2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
+                 "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=40e9797e-2b39-497f-9a0f-78885ef74a92",
+                 "FUNCTIONS_EXTENSION_VERSION": "~3",
+                 "FUNCTIONS_WORKER_RUNTIME": "node",
+                 "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', 'strpocgestionflux', ';AccountKey=', listKeys(parameters('storageAccount_Id'),'2019-06-01').keys[0].value, ';EndpointSuffix=core.windows.net')]",
+                 "WEBSITE_CONTENTSHARE": "[parameters('sites_content_share_name')]",
+                 "WEBSITE_NODE_DEFAULT_VERSION": "~12",
+                 "WEBSITE_ENABLE_SYNC_UPDATE_SITE": "true"   
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/config",
+            "apiVersion": "2018-11-01",
+            "name": "[concat(parameters('sites_azfuncapps_poc_gestionflux_name'), '/web')]",
+            "location": "[parameters('ressources_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_azfuncapps_poc_gestionflux_name'))]"
+            ],
+            "properties": {
+                "numberOfWorkers": -1,
+                "defaultDocuments": [
+                    "Default.htm",
+                    "Default.html",
+                    "Default.asp",
+                    "index.htm",
+                    "index.html",
+                    "iisstart.htm",
+                    "default.aspx",
+                    "index.php"
+                ],
+                "netFrameworkVersion": "v4.0",
+                "phpVersion": "5.6",
+                "requestTracingEnabled": false,
+                "remoteDebuggingEnabled": false,
+                "remoteDebuggingVersion": "VS2019",
+                "httpLoggingEnabled": false,
+                "logsDirectorySizeLimit": 35,
+                "detailedErrorLoggingEnabled": false,
+                "publishingUsername": "$prod-azfuncapps-poc-gestionflux",
+                "azureStorageAccounts": {},
+                "scmType": "VSTSRM",
+                "use32BitWorkerProcess": true,
+                "webSocketsEnabled": false,
+                "alwaysOn": false,
+                "managedPipelineMode": "Integrated",
+                "virtualApplications": [
+                    {
+                        "virtualPath": "/",
+                        "physicalPath": "site\\wwwroot",
+                        "preloadEnabled": false
+                    }
+                ],
+                "loadBalancing": "LeastRequests",
+                "experiments": {
+                    "rampUpRules": []
+                },
+                "autoHealEnabled": false,
+                "cors": {
+                    "allowedOrigins": [
+                        "https://functions.azure.com",
+                        "https://functions-staging.azure.com",
+                        "https://functions-next.azure.com"
+                    ],
+                    "supportCredentials": false
+                },
+                "localMySqlEnabled": false,
+                "ipSecurityRestrictions": [
+                    {
+                        "ipAddress": "Any",
+                        "action": "Allow",
+                        "priority": 1,
+                        "name": "Allow all",
+                        "description": "Allow all access"
+                    }
+                ],
+                "scmIpSecurityRestrictions": [
+                    {
+                        "ipAddress": "Any",
+                        "action": "Allow",
+                        "priority": 1,
+                        "name": "Allow all",
+                        "description": "Allow all access"
+                    }
+                ],
+                "scmIpSecurityRestrictionsUseMain": false,
+                "http20Enabled": false,
+                "minTlsVersion": "1.2",
+                "ftpsState": "AllAllowed",
+                "reservedInstanceCount": 0
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/hostNameBindings",
+            "apiVersion": "2018-11-01",
+            "name": "[concat(parameters('sites_azfuncapps_poc_gestionflux_name'), '/', parameters('sites_azfuncapps_poc_gestionflux_name'), '.azurewebsites.net')]",
+            "location": "[parameters('ressources_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('sites_azfuncapps_poc_gestionflux_name'))]"
+            ],
+            "properties": {
+                "siteName": "prod-azfuncapps-poc-gestionflux",
+                "hostNameType": "Verified"
+            }
+        }
+    ]
+
+}

@@ -1,0 +1,38 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "funcapp_for_apis_name": {
+            "defaultValue": "prod-funcapp-for-apis",
+            "type": "String"
+        },
+		"resLocation": {
+            "defaultValue": "West Europe",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+		{
+            "type": "microsoft.insights/components",
+            "apiVersion": "2018-05-01-preview",
+            "name": "[parameters('funcapp_for_apis_name')]",
+            "location": "[parameters('resLocation')]",
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web",
+                "Request_Source": "IbizaWebAppExtensionCreate",
+                "RetentionInDays": 90,
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+            }
+        }
+    ],
+        "outputs": {
+        "MyInstrumentationKey": {
+            "value": "[reference(resourceId('Microsoft.Insights/components', parameters('funcapp_for_apis_name')), '2018-05-01-preview').InstrumentationKey]",
+            "type": "string"
+        }
+    }
+    
+    }
